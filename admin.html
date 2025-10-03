@@ -1,70 +1,116 @@
 <!DOCTYPE html>
-<h2 style="margin:0 0 8px">Daftar Program</h2>
-<table id="tbl"><thead>
-<tr><th>Judul</th><th>Kategori/Tahun/Status</th><th>PI/URL</th><th style="width:120px">Aksi</th></tr>
-</thead><tbody></tbody></table>
-<div class="muted" id="hint"></div>
-</div>
-</div>
-</div>
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin – LPPM</title>
+  <style>
+    :root{--bg:#0b1116;--card:#0f1820;--muted:#8aa0b3;--text:#e6f0f5;--brand:#10b981;--brand-2:#0ea5e9;--line:#1f2a33}
+    html{background:var(--bg);color:var(--text)} *{box-sizing:border-box}
+    body{margin:0;font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif}
+    .container{max-width:900px;margin:auto;padding:18px}
+    .btn{border:1px solid var(--line);background:transparent;padding:10px 14px;border-radius:12px;cursor:pointer;color:inherit}
+    .btn.primary{background:linear-gradient(135deg,var(--brand),var(--brand-2));border:0;color:#fff}
+    .input,.select,textarea{border:1px solid var(--line);background:var(--card);color:inherit;border-radius:12px;padding:12px 12px;width:100%}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .card{border:1px solid var(--line);background:var(--card);padding:16px;border-radius:16px}
+    .muted{color:var(--muted)}
+    @media (max-width:800px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Admin – Program LPPM</h1>
+    <p class="muted">Set token lalu tambah/hapus program. Data disimpan di storage (Upstash/Vercel KV).</p>
 
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <div class="row">
+          <button class="btn" id="setToken">Set Admin Token</button>
+          <span id="tok" class="muted"></span>
+        </div>
+        <a class="btn" href="/">← Kembali</a>
+      </div>
+    </div>
 
-<div class="toast" id="toast"></div>
+    <div class="card" style="margin-top:12px">
+      <div class="grid">
+        <input class="input" id="fJudul" placeholder="Judul program *" />
+        <input class="input" id="fPI" placeholder="Penanggung jawab / Tim *" />
+        <input class="input" id="fURL" placeholder="URL (https://…)" />
+        <select class="select" id="fKategori">
+          <option>IoT & Computer Vision</option>
+          <option>AI & Data Science</option>
+          <option>Sistem Informasi</option>
+          <option>Ekonomi & Sosial</option>
+          <option>Humaniora</option>
+        </select>
+        <select class="select" id="fTahun">
+          <option>2023</option>
+          <option>2024</option>
+          <option selected>2025</option>
+        </select>
+        <select class="select" id="fStatus">
+          <option>on-going</option>
+          <option>completed</option>
+          <option>proposal</option>
+        </select>
+      </div>
+      <textarea class="input" id="fRingkas" rows="3" placeholder="Ringkasan singkat…"></textarea>
+      <div class="row" style="justify-content:flex-end;margin-top:10px">
+        <button class="btn primary" id="btnSimpan">Simpan / Timpa</button>
+      </div>
+    </div>
 
+    <div class="card" style="margin-top:12px">
+      <div class="row">
+        <input class="input" id="delId" placeholder="ID program untuk dihapus (slug judul)" />
+        <button class="btn" id="btnHapus">Hapus</button>
+      </div>
+    </div>
+  </div>
 
-<script>
-const $ = (s,e=document)=>e.querySelector(s);
-const els = { tbl:$('#tbl tbody'), hint:$('#hint'), toast:$('#toast'), btnSetToken:$('#btnSetToken'), btnRefresh:$('#btnRefresh'), btnTambah:$('#btnTambah') };
-const API_BASE='/api/programs';
-const getToken=()=>localStorage.getItem('lppm-admin-token')||'';
-const setToken=(t)=>localStorage.setItem('lppm-admin-token', t);
-function showToast(m){ const t=els.toast; t.textContent=m; t.style.display='block'; clearTimeout(showToast._t); showToast._t=setTimeout(()=>t.style.display='none',1500); }
-function isHttpUrl(s){ try{ const u=new URL(s); return /^https?:$/.test(u.protocol)}catch{return false} }
-function toId(s){return s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60)}
+  <script>
+    const API_BASE = '/api/programs';
+    let TOKEN = localStorage.getItem('lppm-admin-token') || '';
 
+    function toId(s){ return s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60); }
+    function showToken(){ document.getElementById('tok').textContent = TOKEN ? '✔︎ token terset' : '— belum set token'; }
 
-async function list(){
-els.tbl.innerHTML='';
-const r = await fetch(API_BASE);
-if(!r.ok){ els.hint.textContent='Gagal memuat data. Pastikan API & Vercel KV sudah dikonfigurasi.'; return; }
-const data = await r.json();
-if(!Array.isArray(data) || !data.length){ els.tbl.innerHTML='<tr><td colspan="4" class="muted">Belum ada data</td></tr>'; return; }
-for(const it of data){
-const tr=document.createElement('tr');
-tr.innerHTML=`<td><strong>${it.judul||''}</strong><div class="muted">${it.ringkas||''}</div></td>
-<td><div>${it.kategori||''}</div><div class="muted">${it.tahun||''} • ${it.status||''}</div></td>
-<td><div>${it.pi||''}</div><div class="muted">${it.url?`<a href="${it.url}" target="_blank" rel="noopener">${it.url}</a>`:'—'}</div></td>
-<td><button class="btn danger" data-id="${it.id}">Hapus</button></td>`;
-tr.querySelector('[data-id]')?.addEventListener('click',()=>del(it.id));
-els.tbl.appendChild(tr);
-}
-}
+    document.getElementById('setToken').onclick = ()=>{
+      const t = prompt('Masukkan ADMIN_TOKEN'); if(!t) return;
+      TOKEN = t; localStorage.setItem('lppm-admin-token', t); showToken();
+    };
 
+    document.getElementById('btnSimpan').onclick = async ()=>{
+      const item = {
+        id: toId(document.getElementById('fJudul').value.trim()),
+        judul: document.getElementById('fJudul').value.trim(),
+        pi: document.getElementById('fPI').value.trim(),
+        url: document.getElementById('fURL').value.trim(),
+        kategori: document.getElementById('fKategori').value,
+        tahun: Number(document.getElementById('fTahun').value),
+        status: document.getElementById('fStatus').value,
+        ringkas: document.getElementById('fRingkas').value.trim()
+      };
+      if(!item.id || !item.judul || !item.pi){ alert('Judul & PI wajib.'); return; }
+      const r = await fetch(API_BASE, {
+        method:'POST', headers:{'Content-Type':'application/json', 'Authorization':'Bearer '+TOKEN},
+        body: JSON.stringify(item)
+      });
+      alert(r.ok?'Tersimpan.':'Gagal simpan.');
+    };
 
-async function add(){
-const judul=$('#fJudul').value.trim(); const pi=$('#fPI').value.trim(); const url=$('#fURL').value.trim();
-const kategori=$('#fKategori').value; const tahun=Number($('#fTahun').value); const status=$('#fStatus').value; const ringkas=$('#fRingkas').value.trim();
-if(!judul||!pi){ return showToast('Judul dan PI wajib.'); }
-if(url && !isHttpUrl(url)){ return showToast('URL harus http(s)://'); }
-const id=toId(judul);
-const r = await fetch(API_BASE,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+getToken()},body:JSON.stringify({id,judul,pi,url,kategori,tahun,status,ringkas})});
-if(!r.ok){ showToast('Gagal tambah. Cek token & KV.'); return; }
-showToast('Tersimpan.'); list();
-}
+    document.getElementById('btnHapus').onclick = async ()=>{
+      const id = document.getElementById('delId').value.trim(); if(!id){ alert('Isi ID.'); return; }
+      const r = await fetch(API_BASE + '/' + encodeURIComponent(id), {
+        method:'DELETE', headers:{'Authorization':'Bearer '+TOKEN}
+      });
+      alert(r.ok?'Terhapus.':'Gagal hapus.');
+    };
 
-
-async function del(id){
-if(!confirm('Hapus program ini?')) return;
-const r = await fetch(`${API_BASE}/${encodeURIComponent(id)}`,{method:'DELETE',headers:{'Authorization':'Bearer '+getToken()}});
-if(!r.ok){ showToast('Gagal hapus. Cek token & KV.'); return; }
-showToast('Terhapus.'); list();
-}
-
-
-els.btnSetToken.addEventListener('click',()=>{ const v=prompt('Masukkan ADMIN_TOKEN:'); if(v) setToken(v); });
-els.btnRefresh.addEventListener('click', list);
-els.btnTambah.addEventListener('click', add);
-list();
-</script>
+    showToken();
+  </script>
 </body>
 </html>
