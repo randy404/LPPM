@@ -1,0 +1,10 @@
+{
+  "name": "lppm",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "dependencies": {
+    "@upstash/redis": "^1.28.4"
+  }
+}
