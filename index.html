@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+a.href = urlOk ? it.url : '#';
+a.classList.toggle('disabled', !urlOk);
+a.textContent = urlOk ? 'Buka' : 'Belum Ada URL';
+node.querySelector('.copy').addEventListener('click', async ()=>{
+try{ await navigator.clipboard.writeText(it.url||''); showToast(urlOk?'Link disalin.':'Program belum memiliki URL.'); }catch{ showToast('Gagal menyalin.'); }
+});
+els.grid.appendChild(node);
+}
+els.grid.setAttribute('aria-busy','false');
+}
+
+
+function debounce(fn,ms=220){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); } }
+function saveFilters(){ localStorage.setItem('lppm-filters', JSON.stringify({ q: els.q.value, k: els.kategori.value, t: els.tahun.value })); }
+function restoreFilters(){ try{ const f=JSON.parse(localStorage.getItem('lppm-filters')||'{}'); if(f.q!=null) els.q.value=f.q; if(f.k!=null) els.kategori.value=f.k; if(f.t!=null) els.tahun.value=f.t; }catch{} }
+function sortPrograms(list){ const rank={'on-going':0,'proposal':1,'completed':2}; return [...list].sort((a,b)=> b.tahun-a.tahun || (rank[a.status]??9)-(rank[b.status]??9) || (a.judul||'').localeCompare(b.judul||'','id',{sensitivity:'base'})); }
+
+
+async function fetchPrograms(){
+try{
+const r = await fetch(API_BASE, { headers: { 'Accept':'application/json' } });
+if(!r.ok) throw new Error('API error');
+const data = await r.json();
+return Array.isArray(data) ? data : [];
+}catch(e){
+// fallback seed lokal saat API belum siap
+return [
+{ id:'wave-monitoring', judul:'Wave & Coastal Monitoring (Early Warning) – Pantai Sumbar', url:'https://wave-monitoring.lppm-upiyptk.site', kategori:'IoT & Computer Vision', tahun:2025, status:'on-going', pi:'Tim LPPM UPI YPTK', ringkas:'Sistem pemantauan gelombang/ombak dan potensi tsunami berbasis kamera + visi komputer real-time; dashboard monitoring dan notifikasi cepat.' },
+{ id:'sistem-informasi-umkm', judul:'Sistem Informasi UMKM – Digitalisasi Proses Bisnis', url:'', kategori:'Sistem Informasi', tahun:2024, status:'completed', pi:'Kelompok SI Terapan', ringkas:'Perancangan dan implementasi SI untuk efisiensi rantai pasok & laporan real-time pada UMKM lokal.' }
+];
+}
+}
+
+
+const applyFilters = (function(){
+async function _apply(){
+const all = await fetchPrograms();
+const q = els.q.value.trim().toLowerCase();
+const k = els.kategori.value; const t = els.tahun.value;
+const out = all.filter(x=>{
+const passQ = !q || `${x.judul} ${x.pi} ${x.kategori} ${x.ringkas}`.toLowerCase().includes(q);
+const passK = !k || x.kategori===k;
+const passT = !t || String(x.tahun)===String(t);
+return passQ && passK && passT;
+});
+render(sortPrograms(out)); saveFilters();
+}
+return debounce(_apply, 80);
+})();
+
+
+(function(){
+els.year.textContent = new Date().getFullYear();
+restoreFilters();
+applyFilters();
+els.q.addEventListener('input', applyFilters);
+els.kategori.addEventListener('change', applyFilters);
+els.tahun.addEventListener('change', applyFilters);
+window.addEventListener('keydown', (e)=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){ e.preventDefault(); els.q.focus(); } });
+window.addEventListener('keydown', (e)=>{ if(e.key==='/' && document.activeElement!==els.q){ e.preventDefault(); els.q.focus(); } });
+})();
+</script>
+</body>
+</html>
