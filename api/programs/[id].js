@@ -1,46 +1,38 @@
-// File: api/programs/[id].js
-const KEY = 'programs';
+// /api/programs/[id].js
+import { Redis } from "@upstash/redis";
 
+const KV_URL =
+  process.env.KV_REST_API_URL ||
+  process.env.KV_REST_API_KV_REST_API_URL;
 
-async function kvGet() {
-if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) return null;
-const url = `${process.env.KV_REST_API_URL}/get/${KEY}`;
-const r = await fetch(url, { headers: { Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}` } });
-if (!r.ok) return [];
-const json = await r.json();
-try { return JSON.parse(json.result || '[]'); } catch { return []; }
+const KV_TOKEN =
+  process.env.KV_REST_API_TOKEN ||
+  process.env.KV_REST_API_KV_REST_API_TOKEN;
+
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN;
+
+const redis = new Redis({ url: KV_URL, token: KV_TOKEN });
+const INDEX_KEY = "lppm:index";
+const ITEM = (id) => `lppm:program:${id}`;
+
+function isAdmin(req) {
+  const auth = req.headers.authorization || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  return token && ADMIN_TOKEN && token === ADMIN_TOKEN;
 }
 
-
-async function kvSet(arr) {
-if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) return false;
-const url = `${process.env.KV_REST_API_URL}/set/${KEY}`;
-const r = await fetch(url, {
-method: 'POST',
-headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}` },
-body: JSON.stringify({ value: JSON.stringify(arr) })
-});
-return r.ok;
+export default async function handler(req, res) {
+  try {
+    const { id } = req.query;
+    if (req.method === "DELETE") {
+      if (!isAdmin(req)) return res.status(401).json({ error: "Unauthorized" });
+      await redis.del(ITEM(id));
+      await redis.srem(INDEX_KEY, id);
+      return res.status(200).json({ ok: true });
+    }
+    return res.status(405).json({ error: "Method Not Allowed" });
+  } catch (e) {
+    console.error("API /programs/[id] error:", e);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
 }
-
-
-module.exports = async (req, res) => {
-res.setHeader('Content-Type', 'application/json');
-if (req.method !== 'DELETE') {
-res.setHeader('Allow', 'DELETE');
-return res.status(405).end(JSON.stringify({ error: 'Method Not Allowed' }));
-}
-if (req.headers.authorization !== `Bearer ${process.env.ADMIN_TOKEN}`) {
-return res.status(401).end(JSON.stringify({ error: 'Unauthorized' }));
-}
-
-
-const id = (req.url.split('/').pop() || '').trim();
-if (!id) return res.status(400).end(JSON.stringify({ error: 'Bad Request' }));
-
-
-const list = (await kvGet()) || [];
-const rest = list.filter(x => x.id !== id);
-const ok = await kvSet(rest);
-return res.status(ok ? 200 : 500).end(JSON.stringify({ ok }));
-};
