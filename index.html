@@ -1,65 +1,189 @@
 <!DOCTYPE html>
-a.href = urlOk ? it.url : '#';
-a.classList.toggle('disabled', !urlOk);
-a.textContent = urlOk ? 'Buka' : 'Belum Ada URL';
-node.querySelector('.copy').addEventListener('click', async ()=>{
-try{ await navigator.clipboard.writeText(it.url||''); showToast(urlOk?'Link disalin.':'Program belum memiliki URL.'); }catch{ showToast('Gagal menyalin.'); }
-});
-els.grid.appendChild(node);
-}
-els.grid.setAttribute('aria-busy','false');
-}
+<html lang="id" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LPPM UPI YPTK Padang – Program Penelitian</title>
+  <meta name="description" content="Daftar resmi program penelitian LPPM UPI YPTK Padang." />
+  <style>
+    :root{--bg:#0b1116;--card:#0f1820;--muted:#8aa0b3;--text:#e6f0f5;--brand:#10b981;--brand-2:#0ea5e9;--line:#1f2a33}
+    html{background:var(--bg);color:var(--text)}
+    *{box-sizing:border-box}
+    body{margin:0;font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif}
+    a{color:inherit}
+    .container{max-width:1100px;margin:auto;padding:16px}
+    .nav{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:14px 0}
+    .brand{display:flex;gap:12px;align-items:center;font-weight:800;letter-spacing:.3px}
+    .brand .logo{inline-size:36px;block-size:36px;border-radius:10px;background:linear-gradient(135deg,var(--brand),var(--brand-2));display:grid;place-items:center;color:#fff;font-weight:900}
+    .actions{display:flex;gap:8px;align-items:center}
+    .btn{border:1px solid var(--line);background:transparent;padding:10px 14px;border-radius:12px;cursor:pointer;color:inherit}
+    .btn.primary{background:linear-gradient(135deg,var(--brand),var(--brand-2));border:0;color:#fff}
+    .hero{display:grid;gap:14px;padding:24px;border:1px solid var(--line);border-radius:20px;background:linear-gradient(180deg,rgba(16,185,129,.06),rgba(16,185,129,.03))}
+    .hero h1{margin:0;font-size:clamp(1.6rem,2.4vw+1rem,2.6rem);line-height:1.15}
+    .inputs{display:grid;grid-template-columns:1fr 220px 170px;gap:10px}
+    .input,.select{border:1px solid var(--line);background:var(--card);color:inherit;border-radius:12px;padding:12px 12px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;margin-top:16px}
+    .card{border:1px solid var(--line);background:var(--card);padding:16px;border-radius:16px;display:flex;flex-direction:column;gap:10px}
+    .chip{font-size:.78rem;border:1px solid var(--line);padding:4px 8px;border-radius:999px;display:inline-flex;gap:8px;align-items:center}
+    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .muted{color:var(--muted)}
+    .footer{margin:30px 0 10px;color:var(--muted);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .empty{border:1px dashed var(--line);border-radius:16px;padding:24px;text-align:center;color:var(--muted)}
+    @media (max-width:800px){.inputs{grid-template-columns:1fr} .nav{flex-wrap:wrap;gap:10px}}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <nav class="nav" aria-label="Navigasi utama">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">L</div>
+        <div>
+          <div style="font-size:1.05rem">LPPM UPI YPTK Padang</div>
+          <div class="muted" style="font-size:.88rem">Program Penelitian</div>
+        </div>
+      </div>
+      <div class="actions">
+        <a class="btn" href="/admin.html">Admin</a>
+      </div>
+    </nav>
 
+    <section class="hero" role="region" aria-labelledby="judul">
+      <h1 id="judul">Daftar Program Penelitian</h1>
+      <p class="muted">Jelajahi seluruh program penelitian resmi. Gunakan pencarian dan filter untuk menemukan program sesuai minat Anda.</p>
+      <div class="inputs">
+        <input class="input" id="q" placeholder="Cari judul, peneliti, atau kata kunci… (/, ⌘/Ctrl+K)" />
+        <select class="select" id="filterKategori">
+          <option value="">Semua Kategori</option>
+          <option>IoT & Computer Vision</option>
+          <option>AI & Data Science</option>
+          <option>Sistem Informasi</option>
+          <option>Ekonomi & Sosial</option>
+          <option>Humaniora</option>
+        </select>
+        <select class="select" id="filterTahun">
+          <option value="">Semua Tahun</option>
+          <option>2023</option>
+          <option>2024</option>
+          <option selected>2025</option>
+        </select>
+      </div>
+    </section>
 
-function debounce(fn,ms=220){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); } }
-function saveFilters(){ localStorage.setItem('lppm-filters', JSON.stringify({ q: els.q.value, k: els.kategori.value, t: els.tahun.value })); }
-function restoreFilters(){ try{ const f=JSON.parse(localStorage.getItem('lppm-filters')||'{}'); if(f.q!=null) els.q.value=f.q; if(f.k!=null) els.kategori.value=f.k; if(f.t!=null) els.tahun.value=f.t; }catch{} }
-function sortPrograms(list){ const rank={'on-going':0,'proposal':1,'completed':2}; return [...list].sort((a,b)=> b.tahun-a.tahun || (rank[a.status]??9)-(rank[b.status]??9) || (a.judul||'').localeCompare(b.judul||'','id',{sensitivity:'base'})); }
+    <section style="margin-top:18px">
+      <div id="grid" class="grid" aria-live="polite" aria-busy="false"></div>
+      <div id="empty" class="empty" hidden>🔎 Tidak ada hasil. Coba ubah kata kunci atau filter.</div>
+    </section>
 
+    <footer class="footer">
+      <div>© <span id="year"></span> LPPM UPI YPTK Padang</div>
+      <div class="muted">Domain utama: <strong>lppm-upiypk.site</strong> • Contoh subdomain: <strong>wave-monitoring.lppm-upiypk.site</strong></div>
+    </footer>
+  </div>
 
-async function fetchPrograms(){
-try{
-const r = await fetch(API_BASE, { headers: { 'Accept':'application/json' } });
-if(!r.ok) throw new Error('API error');
-const data = await r.json();
-return Array.isArray(data) ? data : [];
-}catch(e){
-// fallback seed lokal saat API belum siap
-return [
-{ id:'wave-monitoring', judul:'Wave & Coastal Monitoring (Early Warning) – Pantai Sumbar', url:'https://wave-monitoring.lppm-upiyptk.site', kategori:'IoT & Computer Vision', tahun:2025, status:'on-going', pi:'Tim LPPM UPI YPTK', ringkas:'Sistem pemantauan gelombang/ombak dan potensi tsunami berbasis kamera + visi komputer real-time; dashboard monitoring dan notifikasi cepat.' },
-{ id:'sistem-informasi-umkm', judul:'Sistem Informasi UMKM – Digitalisasi Proses Bisnis', url:'', kategori:'Sistem Informasi', tahun:2024, status:'completed', pi:'Kelompok SI Terapan', ringkas:'Perancangan dan implementasi SI untuk efisiensi rantai pasok & laporan real-time pada UMKM lokal.' }
-];
-}
-}
+  <template id="card-template">
+    <article class="card" role="article">
+      <div class="row" style="justify-content:space-between">
+        <h3 style="margin:0;font-size:1.05rem"></h3>
+        <span class="chip status">status</span>
+      </div>
+      <p class="muted desc" style="margin:.3rem 0 .6rem"></p>
+      <div class="row meta">
+        <span class="chip kategori">Kategori</span>
+        <span class="chip tahun">Tahun</span>
+        <span class="chip pi">PI / Tim</span>
+      </div>
+      <div class="row" style="justify-content:flex-end">
+        <a class="btn" target="_blank" rel="noopener" aria-label="Buka tautan program">Buka</a>
+      </div>
+    </article>
+  </template>
 
+  <script>
+    const API_BASE = '/api/programs';
+    const els = {
+      grid: document.getElementById('grid'),
+      empty: document.getElementById('empty'),
+      q: document.getElementById('q'),
+      kategori: document.getElementById('filterKategori'),
+      tahun: document.getElementById('filterTahun'),
+      tpl: document.getElementById('card-template'),
+      year: document.getElementById('year')
+    };
 
-const applyFilters = (function(){
-async function _apply(){
-const all = await fetchPrograms();
-const q = els.q.value.trim().toLowerCase();
-const k = els.kategori.value; const t = els.tahun.value;
-const out = all.filter(x=>{
-const passQ = !q || `${x.judul} ${x.pi} ${x.kategori} ${x.ringkas}`.toLowerCase().includes(q);
-const passK = !k || x.kategori===k;
-const passT = !t || String(x.tahun)===String(t);
-return passQ && passK && passT;
-});
-render(sortPrograms(out)); saveFilters();
-}
-return debounce(_apply, 80);
-})();
+    function render(list){
+      els.grid.innerHTML = '';
+      els.grid.setAttribute('aria-busy','true');
+      if(!list.length){ els.empty.hidden = false; els.grid.setAttribute('aria-busy','false'); return; }
+      els.empty.hidden = true;
+      for(const it of list){
+        const node = els.tpl.content.cloneNode(true);
+        const art = node.querySelector('article');
+        art.dataset.id = it.id;
+        node.querySelector('h3').textContent = it.judul;
+        node.querySelector('.desc').textContent = it.ringkas || '';
+        node.querySelector('.kategori').textContent = it.kategori;
+        node.querySelector('.tahun').textContent = String(it.tahun);
+        node.querySelector('.pi').textContent = it.pi || '—';
+        const status = node.querySelector('.status');
+        status.textContent = it.status;
+        status.style.borderColor = it.status==='completed' ? '#16a34a' : it.status==='proposal' ? '#eab308' : '#38bdf8';
+        const a = node.querySelector('a');
+        a.href = it.url || '#';
+        a.textContent = it.url ? 'Buka' : 'Belum Ada URL';
+        a.classList.toggle('disabled', !it.url);
+        els.grid.appendChild(node);
+      }
+      els.grid.setAttribute('aria-busy','false');
+    }
 
+    async function fetchPrograms(){
+      try{
+        const r = await fetch(API_BASE, { headers:{ 'Accept':'application/json' } });
+        if(!r.ok) throw 0;
+        const data = await r.json();
+        return Array.isArray(data) ? data : [];
+      }catch(e){
+        return [
+          {
+            id: 'wave-monitoring',
+            judul: 'Wave & Coastal Monitoring (Early Warning) – Pantai Sumbar',
+            url: 'https://wave-monitoring.lppm-upiypk.site',
+            kategori: 'IoT & Computer Vision',
+            tahun: 2025,
+            status: 'on-going',
+            pi: 'Tim LPPM UPI YPTK',
+            ringkas: 'Sistem pemantauan gelombang dan potensi tsunami berbasis kamera + visi komputer real-time.'
+          }
+        ];
+      }
+    }
 
-(function(){
-els.year.textContent = new Date().getFullYear();
-restoreFilters();
-applyFilters();
-els.q.addEventListener('input', applyFilters);
-els.kategori.addEventListener('change', applyFilters);
-els.tahun.addEventListener('change', applyFilters);
-window.addEventListener('keydown', (e)=>{ if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){ e.preventDefault(); els.q.focus(); } });
-window.addEventListener('keydown', (e)=>{ if(e.key==='/' && document.activeElement!==els.q){ e.preventDefault(); els.q.focus(); } });
-})();
-</script>
+    function applyFilters(){
+      const all = window.__all || [];
+      const q = els.q.value.trim().toLowerCase();
+      const k = els.kategori.value;
+      const t = els.tahun.value;
+      const out = all.filter(x=>{
+        const passQ = !q || `${x.judul} ${x.pi} ${x.kategori} ${x.ringkas}`.toLowerCase().includes(q);
+        const passK = !k || x.kategori===k;
+        const passT = !t || String(x.tahun)===String(t);
+        return passQ && passK && passT;
+      });
+      render(out);
+    }
+
+    (async function(){
+      els.year.textContent = new Date().getFullYear();
+      window.__all = await fetchPrograms();
+      render(window.__all);
+      els.q.addEventListener('input', applyFilters);
+      els.kategori.addEventListener('change', applyFilters);
+      els.tahun.addEventListener('change', applyFilters);
+      window.addEventListener('keydown', (e)=>{
+        if(e.key==='/'&&document.activeElement!==els.q){ e.preventDefault(); els.q.focus(); }
+        if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); els.q.focus(); }
+      });
+    })();
+  </script>
 </body>
 </html>
